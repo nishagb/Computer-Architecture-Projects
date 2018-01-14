@@ -1,0 +1,257 @@
+/*
+Nisha Gurunath Bharathi
+Student ID: 109896013
+
+Csci246: Computer Architecture HW3
+
+Build a simulator for the Booth's 2's compliment number multiplier.
+Use 16 bit operands for multiplication, i.e 16 bit Multiplicand and 16 bit Multiplier
+and 32 bit product.The simulator should include 1bit ALU, 16bit ALU, BOOTH's multiplier
+and Main driver.
+*/
+
+/* Code */
+#include<stdio.h>
+#define COUNT 16     
+int q0=0;int carry=0;
+int a[COUNT] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int print_bin(int x[]);
+int _16bitALU(int x[],int y[]);
+int arthmeticShift(int x[],int y[]);
+int BoothMultiplier(int MD[], int MQ[]);
+int countReduced(int ab[],int bc[]);
+int twosCompliment(int x[],int y[]);
+int MD[COUNT],MQ[COUNT];
+int oneCompMD[COUNT];
+int coun[4]={1,1,1,1};
+int counReduced[4]={1,1,1,1};
+int twoCompMD[COUNT]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+
+int main(){
+	int i;
+	
+	printf("CA HW 3: BOOTH's Multiplier\n");
+	printf("Enter MD ");
+	for(int i=0;i<COUNT;i++)
+	{
+		scanf("%d",&MD[i]);
+	}
+
+	printf("Enter MQ ");
+	for(int i=0;i<COUNT;i++)
+	{
+		scanf("%d",&MQ[i]);
+	}
+
+	//1's compliment of md
+	for(int i=0;i<COUNT;i++)
+	{
+	if(MD[i]==0) oneCompMD[i]=1;
+	else if(MD[i]==1) oneCompMD[i]=0;
+	}
+
+	//2's compliment of md
+	twosCompliment(oneCompMD,twoCompMD);
+	
+
+	//print 2's comp md
+	printf("\n 2's compliment MD is:");
+	for(int i=0;i<COUNT;i++){ printf("%d ",twoCompMD[i]); }
+	
+	
+	
+	printf("\nCounter\tMD\t\t\t\tAC\t\t\t\tMQ\t\t\t\tMQ-1\n");
+
+	BoothMultiplier(MD,MQ);
+	
+
+	//print final product
+	printf("\nFinal Product is: \n");
+	for(int i=0;i<COUNT;i++){ printf("%d",a[i]); }
+	for(int i=0;i<COUNT;i++){ printf("%d",MQ[i]); }
+
+	return 0;
+}
+
+
+int BoothMultiplier(int MD[], int MQ[])
+{	int i;
+	for(i=0;i<COUNT;i++)
+	{
+	for(int l=0;l<4;l++)
+	{printf("%d",counReduced[l]);}
+	printf("\t");
+	print_bin(MD);
+	print_bin(a);
+	print_bin(MQ);
+	printf("%d\t",q0);
+	
+	
+		//4 rules:
+		if(MQ[COUNT-1]==0 && q0==1)
+		{	
+			
+			printf("A+MD case"); 
+			//call 16bit alu function
+			_16bitALU(a,MD);
+			
+			printf("\n\t\t\t\t\t");
+			for(int i=0;i<COUNT;i++){ printf("%d",a[i]); }
+			printf("\t\t");
+			for(int i=0;i<COUNT;i++){ printf("%d",MQ[i]); }
+			printf("\t\t\t >>1");
+			
+			arthmeticShift(a,MQ);
+			
+			countReduced(counReduced,coun);
+
+		}
+		else if(MQ[COUNT-1]==1 && q0==0)
+		{   
+			printf("A-MD case"); 
+			//call 16bit alu function
+			_16bitALU(a,twoCompMD);
+
+			
+			printf("\n\t\t\t\t\t");
+			for(int i=0;i<COUNT;i++){ printf("%d",a[i]); }
+			printf("\t\t");
+			for(int i=0;i<COUNT;i++){ printf("%d",MQ[i]); }
+			printf("\t\t\t >>1");
+			
+			arthmeticShift(a,MQ);
+			countReduced(counReduced,coun);
+		}
+		else
+		{
+			printf("No add case, >>1");
+			arthmeticShift(a,MQ);
+			countReduced(counReduced,coun);
+		}
+
+	printf("\n");
+	
+	}
+	//check for overflow condition 
+	if(i==COUNT && carry==1){ printf("Overflow\n");}
+
+}
+
+
+int print_bin(int s[]){
+	int i;
+	for(i=0;i<COUNT;i++){
+		printf("%d",s[i]);
+	}
+	printf("\t\t");
+
+}
+int _16bitALU(int x[],int y[]){
+	int i,carry=0;
+	for(i = COUNT-1;i>=0;i--){
+		if(x[i]==0 && y[i]==0 && carry==0){
+			a[i] = 0;
+			carry = 0;
+		}
+		else if(x[i]==0 && y[i]==0 && carry==1){
+                        a[i] = 1;
+                        carry = 0;
+                }
+		else if(((x[i]==1 && y[i]==0)||(x[i]==0 && y[i]==1)) && carry==0){
+			a[i] = 1;
+			carry = 0;
+		}
+		else if(((x[i]==1 && y[i]==0)||(x[i]==0 && y[i]==1)) && carry==1){
+                        a[i] = 0;
+                        carry = 1;
+                }
+		else if(x[i]==1 && y[i]==1 && carry==0){
+			a[i] = 0;
+			carry = 1;
+		}
+		else if(x[i]==1 && y[i]==1 && carry==1){
+                        a[i] = 1;
+                        carry = 1;
+                }
+	}
+	
+	
+}
+int arthmeticShift(int m[],int n[]){
+	int i,lastBit;
+	lastBit = n[COUNT-1];
+	q0 = m[COUNT-1];
+	//for shifting 16 bitnum give as for(i=15;i>=1;i--)   and for 4 bit number give as for(i=3;i>=1;i--)
+     	for(i=15;i>=1;i--){     
+	m[i] = m[i-1];
+    	}
+	//for shifting 16 bitnum give as for(i=15;i>=1;i--)   and for 4 bit number give as for(i=3;i>=1;i--)
+	for(i=15;i>=1;i--){
+        	n[i] = n[i-1];
+    	}
+	n[0] = q0;
+	q0 = lastBit;
+}
+
+int twosCompliment(int p[],int q[]){
+	int i,carry=0;
+	for(i = COUNT-1;i>=0;i--){
+		if(p[i]==0 && q[i]==0 && carry==0){
+			twoCompMD[i] = 0;
+			carry = 0;
+		}
+		else if(p[i]==0 && q[i]==0 && carry==1){
+                        twoCompMD[i] = 1;
+                        carry = 0;
+                }
+		else if(((p[i]==1 && q[i]==0)||(p[i]==0 && q[i]==1)) && carry==0){
+			twoCompMD[i] = 1;
+			carry = 0;
+		}
+		else if(((p[i]==1 && q[i]==0)||(p[i]==0 && q[i]==1)) && carry==1){
+                        twoCompMD[i] = 0;
+                        carry = 1;
+                }
+		else if(p[i]==1 && q[i]==1 && carry==0){
+			twoCompMD[i] = 0;
+			carry = 1;
+		}
+		else if(p[i]==1 && q[i]==1 && carry==1){
+                        twoCompMD[i] = 1;
+                        carry = 1;
+                }
+	}
+	
+	
+}
+int countReduced(int ab[],int bc[]){
+	int i,carry=0;
+	for(i = 3;i>=0;i--){
+		if(ab[i]==0 && bc[i]==0 && carry==0){
+			counReduced[i] = 0;
+			carry = 0;
+		}
+		else if(ab[i]==0 && bc[i]==0 && carry==1){
+                        counReduced[i] = 1;
+                        carry = 0;
+                }
+		else if(((ab[i]==1 && bc[i]==0)||(ab[i]==0 && bc[i]==1)) && carry==0){
+			counReduced[i] = 1;
+			carry = 0;
+		}
+		else if(((ab[i]==1 && bc[i]==0)||(ab[i]==0 && bc[i]==1)) && carry==1){
+                        counReduced[i] = 0;
+                        carry = 1;
+                }
+		else if(ab[i]==1 && bc[i]==1 && carry==0){
+			counReduced[i] = 0;
+			carry = 1;
+		}
+		else if(ab[i]==1 && bc[i]==1 && carry==1){
+                        counReduced[i] = 1;
+                        carry = 1;
+                }
+	}
+	
+	
+}
